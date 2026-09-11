@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "users": [
+    { "id": "u1", "name": "todd" },
+    { "id": "u2", "name": "jahnavi" }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "title": "draft design document",
+      "category": "writing",
+      "status": "complete",
+      "assignee": "u1",
+      "createdAt": "2026-09-11T18:00:00Z"
+    },
+    {
+      "id": "t2",
+      "title": "implement storage layer",
+      "category": "dev",
+      "status": "pending",
+      "assignee": "u2",
+      "createdAt": "2026-09-11T18:05:00Z"
+    },
+    {
+      "id": "t3",
+      "title": "record demo segment",
+      "category": "media",
+      "status": "pending",
+      "assignee": null,
+      "createdAt": "2026-09-11T18:10:00Z"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# java
+*.class
+target/
+build/
+.gradle/
+# node
+node_modules/
+npm-debug.log*
+# runtime data (seed is tracked, working copy is not)
+data/tasks.json
+# os
+.DS_Store
