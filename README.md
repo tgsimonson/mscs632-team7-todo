@@ -70,7 +70,5 @@ java -jar java/todo.jar list          # status changed
 
 | Member | Implementation | Also owns |
 |---|---|---|
-| Todd Simonson | TBD | Repo, spec, test harness, report assembly, comparison section |
-| Jahnavi Dammannagari | TBD | Report section for own language, own demo segment |
-
-Language assignment is pending. Nothing else in this repo depends on it.
+| Todd Simonson | JavaScript | Repo, spec, test harness, report assembly, comparison section |
+| Jahnavi Dammannagari | Java | Report section for own language, own demo segment |
