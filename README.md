@@ -10,17 +10,32 @@ same way, every difference left over is a difference between the languages,
 which is what the report has to analyze. `docs/SPEC.md` holds the contract and
 both implementations are held to it.
 
+## Status
+
+Both implementations are complete and pass the same acceptance baseline.
+
+```bash
+./run_both.sh
+```
+
+That builds both, runs the acceptance test against each, runs the concurrency
+test with and without locking in both, shows a task created in Java appearing
+in JavaScript, and finishes by launching ten processes of each language against
+the same file at once.
+
 ## Layout
 
 ```
-docs/SPEC.md              schema, commands, output format, exit codes
+docs/SPEC.md              schema, commands, output format, exit codes, locking
 docs/design-document.docx deliverable 1
 data/tasks.seed.json      known starting state, tracked in git
 data/tasks.json           working copy, gitignored
+data/tasks.lock           lock file, gitignored
 java/                     Java implementation
 javascript/               JavaScript implementation
 tests/acceptance.sh       one command sequence, run against either version
 tests/concurrency.sh      concurrency test, with and without locking
+run_both.sh               everything above, in order
 ```
 
 ## Running
@@ -28,43 +43,67 @@ tests/concurrency.sh      concurrency test, with and without locking
 ```bash
 cp data/tasks.seed.json data/tasks.json
 
-java -jar java/todo.jar list
+make -C java
+./java/todo list
 node javascript/todo.js list
 ```
 
+Interactive session in either language:
+
+```bash
+./java/todo shell --user jahnavi
+node javascript/todo.js shell --user todd
+```
+
+## Commands
+
+Identical in both implementations.
+
+```
+add       --title "<text>" --category <cat> [--assignee <userId>]
+adduser   --name <name>
+list      [--user <id>] [--category <cat>] [--status pending|complete]
+assign    --id <taskId> --user <userId>
+complete  --id <taskId>
+remove    --id <taskId>
+users
+shell     [--user <name>]
+concurrency-test --workers <n> --ops <n> [--no-lock]
+```
+
+Exit codes: 0 success, 1 usage error, 2 not found, 3 storage error.
+
 ## Testing
 
-Both versions have to produce identical stdout for the same input:
+Both versions produce identical stdout for the same input:
 
 ```bash
-./tests/acceptance.sh "java -jar java/todo.jar"
 ./tests/acceptance.sh "node javascript/todo.js"
+./tests/acceptance.sh "./java/todo"
 ```
 
-The script runs sixteen commands, including three that are supposed to fail, and
-diffs the result against `tests/expected/`. First run writes the baseline.
+Twenty-two commands, including five that are supposed to fail, diffed against
+`tests/expected/`.
 
-Concurrency, three runs each way:
+## Concurrency
 
-```bash
-./tests/concurrency.sh "java -jar java/todo.jar"
-./tests/concurrency.sh "node javascript/todo.js"
-```
+Eight workers, fifty adds each, in both languages:
 
-Eight workers, fifty adds each. With locking both should pass. With `--no-lock`
-the Java version should lose updates. The JavaScript version may not, since it
-only yields at `await`, and that difference is a result we want rather than a
-bug to paper over.
+| Locking | Expected | Actual | Result |
+|---|---|---|---|
+| enabled | 403 | 403 | PASS |
+| disabled | 403 | 53 to 63, or unreadable | FAIL |
 
-## Showing both versions on the same data
+Without synchronization both languages fail, in two ways that vary run to run:
+lost updates, where a worker writes a snapshot taken before another's write,
+and torn reads, where the file is truncated before the new bytes land and
+parsing fails outright.
 
-```bash
-cp data/tasks.seed.json data/tasks.json
-java -jar java/todo.jar add --title "created in java" --category demo
-node javascript/todo.js list          # it's there
-node javascript/todo.js complete --id t4
-java -jar java/todo.jar list          # status changed
-```
+Two layers of exclusion are required and neither alone is enough. A
+promise-chain mutex in JavaScript and a `ReentrantLock` in Java serialize work
+inside one runtime. A lock file, created by atomic exclusive create in both
+languages, excludes other processes. Before the file lock, twenty-four
+concurrent Node processes produced two surviving writes.
 
 ## Team
 

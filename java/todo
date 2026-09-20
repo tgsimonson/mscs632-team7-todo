@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# wrapper so the java implementation is invoked the same shape as the
+# javascript one: ./java/todo list
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+exec java -Dtodo.data="$ROOT/data/tasks.json" -cp "$ROOT/java/out" todo.Main "$@"

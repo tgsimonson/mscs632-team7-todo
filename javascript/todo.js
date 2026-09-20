@@ -3,6 +3,7 @@
 // see docs/SPEC.md for the contract this shares with the java implementation
 const commands = require('./lib/commands');
 const concurrency = require('./lib/concurrency');
+const shell = require('./lib/shell');
 
 // parseOptions turns --key value pairs into an object
 // flags with no value, such as --no-lock, become true
@@ -40,6 +41,7 @@ async function concurrencyTest(opts) {
 // dispatch table: verbs map to handler functions
 const TABLE = {
   add: commands.add,
+  adduser: commands.adduser,
   list: commands.list,
   assign: commands.assign,
   complete: commands.complete,
@@ -54,6 +56,13 @@ async function main() {
   if (!verb) {
     process.stderr.write(`error: no command given, expected one of ${Object.keys(TABLE).join(', ')}\n`);
     process.exit(1);
+  }
+
+  // interactive session shares the same dispatch table as the one-shot path
+  if (verb === 'shell') {
+    const opts = parseOptions(rest);
+    shell.start({ table: TABLE, parseOptions, user: opts.user });
+    return;
   }
 
   const handler = TABLE[verb];

@@ -4,6 +4,7 @@
 // concurrency test is meant to expose
 const fs = require('fs/promises');
 const path = require('path');
+const filelock = require('./filelock');
 
 const SCHEMA_VERSION = 1;
 const DATA_FILE = path.join(__dirname, '..', '..', 'data', 'tasks.json');
@@ -128,7 +129,11 @@ async function withStore(fn, { lock = true, file = DATA_FILE } = {}) {
     await writeStore(store, file);
     return result;
   };
-  return lock ? mutex.run(cycle) : cycle();
+  // two layers: the mutex serializes workers inside this process, the file
+  // lock excludes other processes. neither alone is sufficient
+  return lock
+    ? mutex.run(() => filelock.withLock(cycle))
+    : cycle();
 }
 
 module.exports = {

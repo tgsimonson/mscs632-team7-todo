@@ -80,3 +80,30 @@ $ badcommand
 error: unknown command badcommand
 [exit 1]
 
+$ adduser --name priya
+added user u3
+[exit 0]
+
+$ users
+u1    todd
+u2    jahnavi
+u3    priya
+[exit 0]
+
+$ adduser --name priya
+error: user priya already exists
+[exit 1]
+
+$ adduser --name Bad Name
+error: name must be lowercase letters, digits, hyphen or underscore
+[exit 1]
+
+$ add --title assigned to the new user --category onboarding --assignee u3
+added t5
+[exit 0]
+
+$ list --user u3
+ID    STATUS    CATEGORY    ASSIGNEE    TITLE
+t5    pending   onboarding  priya       assigned to the new user
+[exit 0]
+

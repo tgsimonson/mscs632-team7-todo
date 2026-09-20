@@ -42,6 +42,12 @@ run list --category nonexistent
 run complete --id t99
 run assign --id t1 --user u99
 run badcommand
+run adduser --name priya
+run users
+run adduser --name priya
+run adduser --name "Bad Name"
+run add --title "assigned to the new user" --category onboarding --assignee u3
+run list --user u3
 
 if [ ! -f "$EXPECTED" ]; then
   echo "no expected output on file yet; writing current output as the baseline"

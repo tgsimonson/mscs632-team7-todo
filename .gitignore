@@ -1,12 +1,10 @@
 # java
+java/out/
 *.class
-target/
-build/
-.gradle/
 # node
 node_modules/
-npm-debug.log*
 # runtime data (seed is tracked, working copy is not)
 data/tasks.json
+data/tasks.lock
 # os
 .DS_Store

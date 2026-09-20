@@ -108,9 +108,38 @@ async function remove(opts) {
   return `removed ${id}`;
 }
 
+// nextUserId returns u followed by the highest existing numeric suffix plus one
+function nextUserId(list) {
+  let highest = 0;
+  for (const u of list) {
+    const n = parseInt(String(u.id).slice(1), 10);
+    if (!Number.isNaN(n) && n > highest) highest = n;
+  }
+  return `u${highest + 1}`;
+}
+
+async function adduser(opts) {
+  const name = requireOption(opts, 'name').toLowerCase();
+
+  if (!/^[a-z0-9_-]+$/.test(name)) {
+    throw new UsageError('name must be lowercase letters, digits, hyphen or underscore');
+  }
+
+  const id = await store.withStore(async (s) => {
+    if (s.users.some((u) => u.name === name)) {
+      throw new UsageError(`user ${name} already exists`);
+    }
+    const newId = nextUserId(s.users);
+    s.users.push({ id: newId, name });
+    return newId;
+  });
+
+  return `added user ${id}`;
+}
+
 async function users() {
   const s = await store.readStore();
   return format.userList(s.users);
 }
 
-module.exports = { UsageError, add, list, assign, complete, remove, users };
+module.exports = { UsageError, add, adduser, list, assign, complete, remove, users };

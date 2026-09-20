@@ -134,6 +134,19 @@ remove --id <taskId>
 removed t3
 ```
 
+### `adduser`
+
+```
+adduser --name <name>
+```
+
+Name must be lowercase letters, digits, hyphen or underscore, and unique. The
+id is `u` followed by the highest existing numeric suffix plus one.
+
+```
+added user u3
+```
+
 ### `users`
 
 ```
@@ -144,6 +157,17 @@ users
 u1    todd
 u2    jahnavi
 ```
+
+### `shell`
+
+```
+shell [--user <name>]
+```
+
+Opens an interactive session that accepts the same verbs, plus `help` and
+`exit`. The one-shot form remains primary and is what the acceptance test
+drives; the session is a thin wrapper over the same dispatch, with no
+behavioral differences.
 
 ### `concurrency-test`
 
@@ -184,6 +208,30 @@ error: no task with id t99
 
 ---
 
+## 3a. Locking
+
+Both implementations acquire the same lock before any read-modify-write cycle:
+a file at `data/tasks.lock`, created with an exclusive-create flag that fails
+if the path already exists. That check and create is atomic at the syscall
+level, so exactly one process wins.
+
+- **JavaScript:** `fs.open(path, 'wx')`
+- **Java:** `Files.createFile(path)`, catching `FileAlreadyExistsException`
+
+Retry every 5ms, time out after 10s. A lock whose mtime is older than 30s is
+treated as stale and broken, which recovers from a process that died holding
+it. Release by deleting the file, in a `finally` block or `try`-with-resources
+so a thrown exception cannot leave it held.
+
+The mechanism is fixed here rather than chosen per language because an advisory
+lock only works when every participant honors it the same way. `FileChannel.lock`
+in Java and an exclusive create in Node do not exclude one another, so mixing
+them would leave the two implementations unprotected against each other.
+
+In-language synchronization is still required and is not a substitute. A
+promise-chain mutex or a `ReentrantLock` serializes work inside one runtime;
+the file lock excludes other processes. Both layers are needed.
+
 ## 4. Concurrency requirements
 
 Both implementations must serialize the read-modify-write cycle on
@@ -198,13 +246,22 @@ parallel, `--no-lock` should reliably lose updates.
 **JavaScript.** Cooperative concurrency on one event loop via `async`/`await`
 and `Promise.all`. Guard the critical section with a promise-chain mutex.
 
-A note worth recording for the report: because JavaScript yields only at `await`
-points, the `--no-lock` run may still pass if the read-modify-write cycle
-contains no `await` between the read and the write. If that happens, do not
-"fix" it. Make the file I/O properly asynchronous so the interleaving is real,
-then report the finding. The fact that the unsynchronized version can pass in
-one language and reliably fail in the other is the single most interesting
-result this project can produce.
+Measured result. Both implementations fail without synchronization, and both
+fail in two distinct ways depending on timing:
+
+- **Lost updates.** A worker writes a snapshot taken before another worker's
+  write, discarding it.
+- **Torn reads.** The write truncates the file before the new bytes land, so a
+  reader in that window gets invalid JSON and parsing fails outright.
+
+JavaScript's single-threaded event loop does not prevent this. It only moves
+the interleaving to `await` boundaries. Observed: 343 lost updates with 116
+torn reads in JavaScript, 340 lost updates with 241 torn reads in Java, and
+runs of the same binary that left the file unparseable entirely.
+
+The finding for the report is that the shared resource is a file, not an
+in-memory structure, so neither `synchronized` nor the event loop reaches it.
+Both languages need an OS-level primitive, and it has to be the same one.
 
 ---
 
@@ -226,3 +283,5 @@ the feature freeze.
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-09-11 | Initial contract |
+| 1.1 | 2026-09-20 | Added section 3a, cross-process lock file, required in both implementations |
+| 1.2 | 2026-09-20 | Added the adduser command and an interactive shell mode |
