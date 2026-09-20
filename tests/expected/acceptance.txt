@@ -1,0 +1,82 @@
+$ users
+u1    todd
+u2    jahnavi
+[exit 0]
+
+$ list
+ID    STATUS    CATEGORY    ASSIGNEE    TITLE
+t1    complete  writing     todd        draft design document
+t2    pending   dev         jahnavi     implement storage layer
+t3    pending   media       -           record demo segment
+[exit 0]
+
+$ add --title write comparison section --category writing
+added t4
+[exit 0]
+
+$ add --title stitch video segments --category media --assignee u1
+added t5
+[exit 0]
+
+$ list --status pending
+ID    STATUS    CATEGORY    ASSIGNEE    TITLE
+t2    pending   dev         jahnavi     implement storage layer
+t3    pending   media       -           record demo segment
+t4    pending   writing     -           write comparison section
+t5    pending   media       todd        stitch video segments
+[exit 0]
+
+$ list --category writing
+ID    STATUS    CATEGORY    ASSIGNEE    TITLE
+t1    complete  writing     todd        draft design document
+t4    pending   writing     -           write comparison section
+[exit 0]
+
+$ list --user u1
+ID    STATUS    CATEGORY    ASSIGNEE    TITLE
+t1    complete  writing     todd        draft design document
+t5    pending   media       todd        stitch video segments
+[exit 0]
+
+$ assign --id t3 --user u2
+assigned t3 to jahnavi
+[exit 0]
+
+$ complete --id t3
+completed t3
+[exit 0]
+
+$ list --status complete
+ID    STATUS    CATEGORY    ASSIGNEE    TITLE
+t1    complete  writing     todd        draft design document
+t3    complete  media       jahnavi     record demo segment
+[exit 0]
+
+$ remove --id t5
+removed t5
+[exit 0]
+
+$ list
+ID    STATUS    CATEGORY    ASSIGNEE    TITLE
+t1    complete  writing     todd        draft design document
+t2    pending   dev         jahnavi     implement storage layer
+t3    complete  media       jahnavi     record demo segment
+t4    pending   writing     -           write comparison section
+[exit 0]
+
+$ list --category nonexistent
+no tasks match
+[exit 0]
+
+$ complete --id t99
+error: no task with id t99
+[exit 2]
+
+$ assign --id t1 --user u99
+error: no user with id u99
+[exit 2]
+
+$ badcommand
+error: unknown command badcommand
+[exit 1]
+

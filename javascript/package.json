@@ -1,0 +1,10 @@
+{
+  "name": "team7-todo-javascript",
+  "version": "1.0.0",
+  "description": "Collaborative to-do list, JavaScript implementation",
+  "main": "todo.js",
+  "scripts": {
+    "start": "node todo.js"
+  },
+  "license": "MIT"
+}
