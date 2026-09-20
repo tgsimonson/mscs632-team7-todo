@@ -48,10 +48,22 @@ workers, fifty adds each, three runs:
 | Locking | Expected | Actual | Result |
 |---|---|---|---|
 | enabled | 403 | 403 | PASS |
-| disabled | 403 | 53 | FAIL, 350 lost updates |
+| disabled | 403 | 53 or unreadable | FAIL |
 
-The unsynchronized run loses updates reliably, not intermittently. Each worker
-awaits a read, and every worker that was waiting resumes holding a snapshot
-taken before the others wrote, so the last write of each cycle discards the
-rest. Single-threaded execution does not prevent the race; it only moves the
-interleaving to `await` boundaries.
+The unsynchronized run fails reliably, not intermittently, but it fails in two
+different ways depending on the filesystem.
+
+**Lost updates.** Each worker awaits a read, and every worker that was waiting
+resumes holding a snapshot taken before the others wrote, so the last write of
+each cycle discards the rest. Observed on ext4: 350 of 400 writes lost.
+
+**Torn reads.** `writeFile` truncates before it writes. A reader that lands in
+that window gets an incomplete file and `JSON.parse` fails outright. Observed
+on APFS, where the same run leaves the store unparseable rather than merely
+short.
+
+The test reports whichever occurred instead of assuming one. Both outcomes make
+the same point: single-threaded execution does not prevent the race, it only
+moves the interleaving to `await` boundaries. The second outcome is the worse
+one, since a corrupted store loses data that was already committed rather than
+only the writes that raced.
